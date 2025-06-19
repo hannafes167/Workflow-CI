@@ -1,0 +1,29 @@
+name: Train Model CI
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: MLProject
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Conda
+      uses: conda-incubator/setup-miniconda@v2
+      with:
+        environment-file: conda.yaml
+        activate-environment: heart-disease-env
+
+    - name: Install MLflow
+      run: pip install mlflow
+
+    - name: Train Model with MLflow Project
+      run: mlflow run . -P n_estimators=100 -P max_depth=10
