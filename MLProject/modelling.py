@@ -16,14 +16,14 @@ mlflow.set_tracking_uri("file:./mlruns")
 mlflow.set_experiment("HeartDisease_Basic")
 mlflow.sklearn.autolog()
 
-with mlflow.start_run(run_name="basic_autolog_run", nested=True):
-    model = RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42)
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
+# Tanpa mlflow.start_run(), karena run sudah otomatis dimulai oleh CLI
+model = RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42)
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
 
-    mlflow.log_metric("test_accuracy", accuracy_score(y_test, y_pred))
-    mlflow.log_metric("test_precision", precision_score(y_test, y_pred))
-    mlflow.log_metric("test_recall", recall_score(y_test, y_pred))
-    mlflow.log_metric("test_f1", f1_score(y_test, y_pred))
+mlflow.log_metric("test_accuracy", accuracy_score(y_test, y_pred))
+mlflow.log_metric("test_precision", precision_score(y_test, y_pred))
+mlflow.log_metric("test_recall", recall_score(y_test, y_pred))
+mlflow.log_metric("test_f1", f1_score(y_test, y_pred))
 
-    print("Training dan testing selesai.")
+print("Training dan testing selesai.")
