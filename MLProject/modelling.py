@@ -12,7 +12,7 @@ X_test = pd.read_csv("heart-disease_preprocessing/X_test.csv")
 y_train = pd.read_csv("heart-disease_preprocessing/y_train.csv").values.ravel()
 y_test = pd.read_csv("heart-disease_preprocessing/y_test.csv").values.ravel()
 
-mlflow.set_tracking_uri("file:./mlruns")  
+mlflow.set_tracking_uri("http://127.0.0.1:5000")  
 mlflow.set_experiment("HeartDisease_Basic")
 mlflow.sklearn.autolog()
 
