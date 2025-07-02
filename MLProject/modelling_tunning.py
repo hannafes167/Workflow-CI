@@ -1,71 +1,58 @@
+# modelling_tuning.py
 import pandas as pd
 import mlflow
-import joblib
+import mlflow.sklearn
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import (
-    accuracy_score,
-    precision_score,
-    recall_score,
-    classification_report,
-    confusion_matrix
-)
 
-# Load dataset hasil preprocessing
-X_train = pd.read_csv("X_train.csv")
-X_test = pd.read_csv("X_test.csv")
-y_train = pd.read_csv("y_train.csv").values.ravel()
-y_test = pd.read_csv("y_test.csv").values.ravel()
+# Load preprocessed data
+X_train = pd.read_csv("heart-disease_preprocessing/X_train.csv").astype('float64')
+X_test = pd.read_csv("heart-disease_preprocessing/X_test.csv").astype('float64')
+y_train = pd.read_csv("heart-disease_preprocessing/y_train.csv").values.ravel()
+y_test = pd.read_csv("heart-disease_preprocessing/y_test.csv").values.ravel()
 
-# Atur eksperimen
-mlflow.set_experiment("Heart Disease Grid Search")
+# MLflow setup 
+mlflow.set_tracking_uri("file:./mlruns")
+mlflow.set_experiment("HeartDisease_Tuning")
 
-# Parameter untuk tuning
+# Hyperparameter tuning
 param_grid = {
-    "n_estimators": [50, 100],
-    "max_depth": [5, 10],
-    "min_samples_split": [2, 5]
+    'n_estimators': [50, 100],
+    'max_depth': [5, 10, 15],
+    'min_samples_split': [2, 5]
 }
 
-# Model dasar
-model = RandomForestClassifier(random_state=42)
-grid_search = GridSearchCV(model, param_grid, cv=3, scoring="accuracy", n_jobs=-1)
+grid_search = GridSearchCV(
+    estimator=RandomForestClassifier(random_state=42),
+    param_grid=param_grid,
+    scoring='accuracy',
+    cv=3,
+    n_jobs=-1
+)
 
-# Mulai run manual logging
-with mlflow.start_run(run_name="GridSearch_RF_ManualLogging"):
+grid_search.fit(X_train, y_train)
+best_model = grid_search.best_estimator_
 
-    grid_search.fit(X_train, y_train)
-    best_model = grid_search.best_estimator_
+with mlflow.start_run(run_name="manual_tuning_run"):
+    mlflow.log_param("n_estimators", best_model.n_estimators)
+    mlflow.log_param("max_depth", best_model.max_depth)
+    mlflow.log_param("min_samples_split", best_model.min_samples_split)
+
+    # Predict dan hitung metrik
     y_pred = best_model.predict(X_test)
-
-    # Logging parameter terbaik
-    for param, value in grid_search.best_params_.items():
-        mlflow.log_param(param, value)
-
-    # Logging metrik manual
     acc = accuracy_score(y_test, y_pred)
     prec = precision_score(y_test, y_pred)
     rec = recall_score(y_test, y_pred)
-    report = classification_report(y_test, y_pred)
+    f1 = f1_score(y_test, y_pred)
 
+    # Log metrik ke MLflow
     mlflow.log_metric("accuracy", acc)
     mlflow.log_metric("precision", prec)
     mlflow.log_metric("recall", rec)
+    mlflow.log_metric("f1_score", f1)
 
-    # Simpan laporan klasifikasi ke file
-    with open("classification_report.txt", "w") as f:
-        f.write(report)
-    mlflow.log_artifact("classification_report.txt")
+    # Simpan model sebagai artifact
+    mlflow.sklearn.log_model(best_model, "random_forest_model")
 
-    # Simpan model ke file
-    joblib.dump(best_model, "rf_best_model.joblib")
-    mlflow.log_artifact("rf_best_model.joblib")
-
-    # Cetak hasil evaluasi
-    print("=== HASIL EVALUASI ===")
-    print("Best Params:", grid_search.best_params_)
-    print("Accuracy:", acc)
-    print("Precision:", prec)
-    print("Recall:", rec)
-    print("\nConfusion Matrix:\n", confusion_matrix(y_test, y_pred))
-    print("\nClassification Report:\n", report)
+    print("✅ Training dan tuning selesai.")
