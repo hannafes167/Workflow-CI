@@ -1,5 +1,3 @@
-# modelling_tuning.py
-
 import pandas as pd
 import mlflow
 import mlflow.sklearn
@@ -13,10 +11,9 @@ X_test = pd.read_csv("heart-disease_preprocessing/X_test.csv").astype('float64')
 y_train = pd.read_csv("heart-disease_preprocessing/y_train.csv").values.ravel()
 y_test = pd.read_csv("heart-disease_preprocessing/y_test.csv").values.ravel()
 
-# MLflow setup
+# MLflow setup 
 mlflow.set_tracking_uri("file:./mlruns")
 mlflow.set_experiment("HeartDisease_Tuning")
-
 
 # Hyperparameter tuning
 param_grid = {
@@ -36,18 +33,26 @@ grid_search = GridSearchCV(
 grid_search.fit(X_train, y_train)
 best_model = grid_search.best_estimator_
 
-# Logging manual (tanpa start_run)
-mlflow.log_param("n_estimators", best_model.n_estimators)
-mlflow.log_param("max_depth", best_model.max_depth)
-mlflow.log_param("min_samples_split", best_model.min_samples_split)
+# ✅ Safe untuk CI (nested=True)
+with mlflow.start_run(run_name="manual_tuning_run", nested=True):
+    mlflow.log_param("n_estimators", best_model.n_estimators)
+    mlflow.log_param("max_depth", best_model.max_depth)
+    mlflow.log_param("min_samples_split", best_model.min_samples_split)
 
-y_pred = best_model.predict(X_test)
+    # Predict dan hitung metrik
+    y_pred = best_model.predict(X_test)
+    acc = accuracy_score(y_test, y_pred)
+    prec = precision_score(y_test, y_pred)
+    rec = recall_score(y_test, y_pred)
+    f1 = f1_score(y_test, y_pred)
 
-mlflow.log_metric("accuracy", accuracy_score(y_test, y_pred))
-mlflow.log_metric("precision", precision_score(y_test, y_pred))
-mlflow.log_metric("recall", recall_score(y_test, y_pred))
-mlflow.log_metric("f1_score", f1_score(y_test, y_pred))
+    # Log metrik ke MLflow
+    mlflow.log_metric("accuracy", acc)
+    mlflow.log_metric("precision", prec)
+    mlflow.log_metric("recall", rec)
+    mlflow.log_metric("f1_score", f1)
 
-mlflow.sklearn.log_model(best_model, "random_forest_model")
+    # Simpan model sebagai artifact
+    mlflow.sklearn.log_model(best_model, "random_forest_model")
 
-print("✅ Training dan tuning selesai.")
+    print("✅ Training dan tuning selesai.")
