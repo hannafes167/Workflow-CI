@@ -18,7 +18,7 @@ jobs:
       with:
         auto-update-conda: true
         environment-file: MLProject/conda.yaml
-        activate-environment: mlflow-env  # Sesuaikan dengan 'name' di conda.yaml
+        activate-environment: mlflow-env 
         auto-activate-base: false
         use-mamba: true
 
